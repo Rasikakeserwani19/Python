@@ -1,0 +1,192 @@
+
+from lxml import html  
+import requests
+from bs4 import BeautifulSoup
+from selenium import webdriver
+import time as t
+import pandas as pd
+from selenium.webdriver.common.by import By
+
+#Car_Tyres_Code
+car_url  = 'https://tyres.cardekho.com/car-tyre-brands'
+response_car = requests.get(car_url)
+if response_car.status_code != 200:
+        print('Failed to retrieve articles with error {}'.format(response_car.status_code))
+        exit()
+#Bike_Tyres_Code
+bike_url='https://tyres.cardekho.com/bike-tyre-brands'
+response_bike = requests.get(bike_url)
+if response_bike.status_code != 200:
+        print('Failed to retrieve articles with error {}'.format(response_bike.status_code))
+        exit()
+#Truck_Tyres_Code
+truck_url='https://tyres.cardekho.com/truck-tyre-brands'
+response_truck = requests.get(truck_url)
+if response_truck.status_code != 200:
+        print('Failed to retrieve articles with error {}'.format(response_truck.status_code))
+        exit()
+df=pd.DataFrame(columns={'URL','Product Name','Product Image','Product Price','Feature','Specification','Specification Value' })  
+df1=pd.DataFrame(columns={'Product Page URL','Tyre Type'})      
+
+brand_url= []
+soupvar_car = BeautifulSoup(response_car.content, "html.parser")
+soupvar_bike = BeautifulSoup(response_bike.content, "html.parser")
+soupvar_truck = BeautifulSoup(response_truck.content, "html.parser")
+
+
+link_car = soupvar_car.find_all('li', attrs={'class': 'tyrebrand'})
+for li in link_car:
+    car = li.find_all('a') 
+    for car_value in range(0,len(car)):
+       next_car_url = car[car_value].get('href')
+       brand_url.append(next_car_url)
+a=len(brand_url)
+
+link_bike = soupvar_bike.find_all('li', attrs={'class': 'tyrebrand'})
+for li in link_bike:
+    bike = li.find_all('a')
+    for bike_value in range(0,len(bike)):
+       next_bike_url = bike[bike_value].get('href')
+       brand_url.append(next_bike_url)
+b=len(brand_url)    
+  
+link_truck = soupvar_truck.find_all('li', attrs={'class': 'tyrebrand'})
+for li in link_truck:
+    truck = li.find_all('a')
+    for truck_value in range(0,len(truck)):
+       next_truck_url = truck[truck_value].get('href')
+       brand_url.append(next_truck_url)   
+c=len(brand_url) 
+
+options = webdriver.ChromeOptions()
+options.add_argument('--ignore-certificate-errors')
+options.add_argument("--start-maximized")
+options.add_argument("--test-type")
+
+next_page_url=[]
+next_page=[]
+next_link =[]
+i=32
+k=0
+for i in range(31,len(brand_url)):
+    
+
+    driver = webdriver.Chrome(executable_path='C:/Users/Rasika/Desktop/Python_code/chromedriver.exe',chrome_options=options)
+    driver.get(brand_url[i]) 
+    t.sleep(5)
+    
+    
+    #driver = webdriver.Firefox(executable_path='C:/Users/imart/Downloads/geckodriver-v0.21.0-win64/geckodriver.exe')
+    container = driver.find_element_by_id("connecto_58e353880b1cbe9c21548969")
+    driver.execute_script("arguments[0].style.display = 'none';", container)
+    t.sleep(5)
+    driver.find_element(By.XPATH,'//*[@id="searchLocationModal"]/a').click()
+    #driver.execute_script(" window.addEventListener('load', function(){document.getElementById('connecto_58e353880b1cbe9c21548969').innerHTML=' ';});")
+    t.sleep(5)
+    if(i >=0 and i<a):
+        
+        tyre_type='Car Tyre'
+        driver.execute_script("window.document.getElementsByClassName('vehicle_type_radio ')[0].click()")
+        
+    elif(i>=a and i<b):
+        tyre_type='Bike Tyre'
+        if(driver.find_element(By.XPATH,'//*[@id="versionCtrl"]/div/div/div[1]/div/div[1]/div/label[1]').get_attribute('data-value')=='Car'):
+            driver.find_element(By.XPATH,'//*[@id="versionCtrl"]/div/div/div[1]/div/div[1]/div/label[2]').click()
+        else:
+            driver.find_element(By.XPATH,'//*[@id="versionCtrl"]/div/div/div[1]/div/div[1]/div/label[1]').click()
+    else:
+        tyre_type='Truck Tyre'
+        if(driver.find_element(By.XPATH,'//*[@id="versionCtrl"]/div/div/div[1]/div/div[1]/div/label[1]').get_attribute('data-value')=='Car'):
+            if(driver.find_element(By.XPATH,'//*[@id="versionCtrl"]/div/div/div[1]/div/div[1]/div/label[2]').get_attribute('data-value')=='Bike'):
+                driver.find_element(By.XPATH,'//*[@id="versionCtrl"]/div/div/div[1]/div/div[1]/div/label[3]').click()
+            else:
+                driver.find_element(By.XPATH,'//*[@id="versionCtrl"]/div/div/div[1]/div/div[1]/div/label[2]').click()  
+        elif(driver.find_element(By.XPATH,'//*[@id="versionCtrl"]/div/div/div[1]/div/div[1]/div/label[1]').get_attribute('data-value')=='Bike'):
+                driver.find_element(By.XPATH,'//*[@id="versionCtrl"]/div/div/div[1]/div/div[1]/div/label[2]').click()
+        else:
+            driver.find_element(By.XPATH,'//*[@id="versionCtrl"]/div/div/div[1]/div/div[1]/div/label[1]').click()
+            
+    t.sleep(5)
+    lenOfPage = driver.execute_script("window.scrollTo(0, document.body.scrollHeight);var lenOfPage=document.body.scrollHeight;return lenOfPage;")
+       
+    match=False
+    while(match==False):
+        lastCount = lenOfPage
+        driver.execute_script("window.document.getElementById('shw_more_res').click()")
+        t.sleep(5)
+        lenOfPage = driver.execute_script("window.scrollTo(0, document.body.scrollHeight);var lenOfPage=document.body.scrollHeight;return lenOfPage;")        
+        if lastCount==lenOfPage:
+                match=True        
+                
+    source_data = driver.page_source
+    
+#Brand_Page Get all the link   
+    
+    soup2 = BeautifulSoup(source_data, "html.parser")
+    next_link = soup2.find_all('div', attrs={'class': 'link-button'})
+    for specs in range(0,len(next_link)):
+       next_page = next_link[specs].find('a').get('href')
+       df1.set_value(k,'Product Page URL',next_page)
+       next_page_url.append(next_page)
+       
+       df1.set_value(k,'Tyre Type',tyre_type)
+       k+=1
+      
+specs=0
+j=0 
+df1.to_csv('C:/Users/Rasika/Desktop/Python_code/Product_Page_URL.csv', index=False) 
+
+for url in next_page_url:
+           #url= 'https://tyres.cardekho.com/mrf/ztx/145-80-r12-74s'
+           headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.90 Safari/537.36'}
+           
+           page = requests.get(url,headers = headers,verify=False)
+           page_response = page.text
+           parser = html.fromstring(page.content)
+           t.sleep(5)
+
+
+          
+           productname = parser.xpath('//*[@id="pagecontent"]/div[3]/div/div/div[1]/div[1]/div[2]/h1')
+           name = productname[0].text_content().strip()
+           
+           
+           productspecs = BeautifulSoup(page.content, "html.parser")
+           imglink = productspecs.find('img', attrs={'class': 'drift-demo-trigger'})
+           img = imglink.get('data-src')
+           productprice = parser.xpath('//*[@id="pagecontent"]/div[3]/div/div/div[2]/div[1]/div/span')
+           price = productprice[0].text_content().strip()
+           
+           productfeature = productspecs.find('div', attrs={'id': 'fullEditorialReview'})
+           productfeaturevalue = productfeature.text.strip().split('.\n')
+          
+           
+           spec_head =[]
+           producthead = productspecs.find_all('span', attrs={'class': 'vrsnhead'})
+           for specs_1 in range(0,len(producthead)):
+               spec_head.append(producthead[specs_1].text)
+               
+           spec_value=[]
+           productvalue= productspecs.find_all('div', attrs={'class': 'vrsnbtn'})
+           for specs_2 in range(0,len(productvalue)):
+               spec_value.append(productvalue[specs_2].text)
+               
+           
+           product_spec= []
+           productspecsdetail=productspecs.find_all('p', attrs={'class': 'specfication-content'})
+           for specs_3 in range(0,len(productspecsdetail)):
+               product_spec.append(productspecsdetail[specs_3].text) 
+            
+            
+            
+           df.set_value(j,'Product Name',name)
+           df.set_value(j,'Product Image',img)
+           df.set_value(j,'Product Price',price)
+           df.set_value(j,'Feature',productfeaturevalue)
+           df.set_value(j,'Specification',spec_head)
+           df.set_value(j,'Specification Value',spec_value)
+           df.set_value(j,'URL',url)
+           print(j)
+           j+=1
+           
+df.to_csv('C:/Users/Rasika/Desktop/Tyre_Dekho/Tyre_Dekho.csv', index=False)
